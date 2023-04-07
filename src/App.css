@@ -118,15 +118,17 @@ a:hover {
   line-height: 1.2;
 }
 
-.app__menu__container > ul > li > details {
-  margin-bottom: 14px;
+.app__menu__container > details {
+  margin-bottom: 16px;
 }
 
-.app__menu__container > ul > li > details summary{
+.app__menu__container > details summary{
   cursor: pointer;
+  font-size: 18px;
+  margin-bottom: 8px;
 }
 
-.app__menu__container > ul > li > details summary:focus {
+.app__menu__container > details summary:focus {
   outline: none;
 }
 
