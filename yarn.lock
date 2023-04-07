@@ -3206,7 +3206,7 @@ find-up@^2.1.0:
   dependencies:
     locate-path "^2.0.0"
 
-firebase@^7.2.0:
+firebase@^7.24.0:
   version "7.24.0"
   resolved "https://registry.npmjs.org/firebase/-/firebase-7.24.0.tgz"
   integrity sha512-j6jIyGFFBlwWAmrlUg9HyQ/x+YpsPkc/TTkbTyeLwwAJrpAmmEHNPT6O9xtAnMV4g7d3RqLL/u9//aZlbY4rQA==
