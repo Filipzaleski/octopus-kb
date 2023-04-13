@@ -584,7 +584,7 @@
 
 .content--markdown table {
   display: block;
-  width: 100%;
+  width: 150%;
   overflow: auto;
 }
 
