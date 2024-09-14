@@ -91,7 +91,7 @@ class App extends Component {
           OnlineTracker.track(this.props.location.pathname);
         } else {
           if (!this.stopRedirection) {
-            firebase.auth().signInWithRedirect(this.getAuthProvider())
+            firebase.auth().signInWithPopup(this.getAuthProvider())
               .catch(err => {
                 this.stopRedirection = true;
                 this.setState({

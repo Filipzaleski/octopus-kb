@@ -1,1 +1,13 @@
-/*    /index.html   200
+
+$(document).ready(function() {
+  // Ensure error messages are hidden initially
+  $('.hs-error-msgs').css('display', 'none');
+});
+  // When the submit button is clicked
+  $('.hs-button primary').click(function(event) {
+    // Wait a short time to allow for HubSpot validation
+    setTimeout(function() {
+      // Force display of all error messages
+      $('.hs-error-msgs').css('display', 'block!important');
+    }, 100); // Short delay to let HubSpot validation complete
+  });
