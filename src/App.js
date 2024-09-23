@@ -32,7 +32,9 @@ class App extends Component {
     loggedIn: false,
     accessDenied: false,
     hasUnsavedChanges: false,
-    menu: null
+    menu: null,
+    authError: false,
+    authErrorMessage: ''
   };
 
   componentDidMount() {
@@ -53,56 +55,61 @@ class App extends Component {
     // Allow markdown plugins to refer to "firebase" global object
     window['firebase'] = firebase;
 
+    // Initialize Firebase App
     firebase.initializeApp(config);
 
-    try {
-      firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-          this.setState({
-            loggedIn: true
-          });
+    // Set persistence to LOCAL to ensure auth state is saved across tabs/sessions
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .then(() => {
+        // Check if user is already authenticated
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            this.setState({
+              loggedIn: true
+            });
 
-          let menu = firebase.database().ref('pages/menu');
-          menu.on('value', (snapshot) => {
-            const menuContents = snapshot.val();
-            if (menuContents) {
-              this.setState({
-                menu: menuContents.body
-              });
-            } else {
-              this.createExamplePages();
+            // Fetch the menu from Firebase Database
+            let menu = firebase.database().ref('pages/menu');
+            menu.on('value', (snapshot) => {
+              const menuContents = snapshot.val();
+              if (menuContents) {
+                this.setState({
+                  menu: menuContents.body
+                });
+              } else {
+                this.createExamplePages();
+              }
+            }, (error) => {
+              this.onAccessDenied();
+            });
+
+            OnlineTracker.track(this.props.location.pathname);
+          } else {
+            if (!this.stopRedirection) {
+              // Sign in using popup with fallback to redirect
+              firebase.auth().signInWithPopup(this.getAuthProvider())
+                .catch(err => {
+                  if (err.code === 'auth/popup-blocked') {
+                    // Fallback to redirect if popup is blocked
+                    firebase.auth().signInWithRedirect(this.getAuthProvider());
+                  } else {
+                    this.stopRedirection = true;
+                    this.setState({
+                      authError: true,
+                      authErrorMessage: err.message
+                    });
+                  }
+                });
             }
-          }, (error) => {
-            this.onAccessDenied();
-          });
-
-          OnlineTracker.track(this.props.location.pathname);
-        } else {
-          if (!this.stopRedirection) {
-            // Sign in using popup
-            firebase.auth().signInWithPopup(this.getAuthProvider())
-              .catch(err => {
-                if (err.code === 'auth/popup-blocked') {
-                  // Fallback to redirect if popup is blocked
-                  firebase.auth().signInWithRedirect(this.getAuthProvider());
-                } else {
-                  this.stopRedirection = true;
-                  this.setState({
-                    authError: true,
-                    authErrorMessage: err.message
-                  });
-                }
-              });
           }
-        }
+        });
+      })
+      .catch((err) => {
+        this.setState({
+          authError: true,
+          authErrorMessage: err.message
+        });
       });
-    } catch (err) {
-      this.stopRedirection = true;
-      this.setState({
-        authError: true,
-        authErrorMessage: err.message
-      });
-    }
   }
 
   componentWillUnmount() {
@@ -186,17 +193,18 @@ class App extends Component {
   }
 
   openParentDetailsNode = (node) => {
-    if(node){
-      if(node.nodeName.toLowerCase() !== 'details')
+    if (node) {
+      if (node.nodeName.toLowerCase() !== 'details') {
         this.openParentDetailsNode(node.parentNode);
-      else
+      } else {
         node.setAttribute('open', 'true');
+      }
     }
   };
 
   followDetailsInMenu = () => {
     const menuDOMNode = ReactDOM.findDOMNode(this.refs.menu);
-    if(menuDOMNode) {
+    if (menuDOMNode) {
       const actives = menuDOMNode.getElementsByClassName('active');
       for (let i = 0; i < actives.length; i++) {
         this.openParentDetailsNode(actives[i]);
@@ -216,12 +224,12 @@ class App extends Component {
             <div>
             <p>Please go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">Firebase Console</a> &gt; Authentication &gt; Sign-in method and make sure:</p>
             <ul>
-            <li>At least one sign-in method is configured,</li>
-            <li><strong>{window.location.origin}</strong> is added to the list of authorized domains.</li>
+              <li>At least one sign-in method is configured,</li>
+              <li><strong>{window.location.origin}</strong> is added to the list of authorized domains.</li>
             </ul>
             </div>
           }
-        <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
+          <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
         </div>
       );
     } else if (this.state.accessDenied) {
@@ -273,7 +281,6 @@ class App extends Component {
               </Markdown>
             </div>
           }
-          
         </div>
 
         <div className="app__content">
