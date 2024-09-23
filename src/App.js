@@ -2,8 +2,7 @@ import './css/reset.css';
 import './css/buttons.css';
 import './css/tooltips.css';
 import './App.css';
-import React, { Suspense, lazy } from 'react';
-import React, { Component } from 'react';
+import React, { Component, Suspense, lazy } from 'react';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom';
 
@@ -13,6 +12,8 @@ import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
 import { PeopleOnline } from './components/people-online';
 import { MenuSearch } from './components/menu-search';
+import { OnlineTracker } from './utils';
+
 
 import {
   menuTemplate,
@@ -22,15 +23,8 @@ import {
   newPageTemplate
 } from './templates';
 
-const MyComponent = lazy(() => import('./MyComponent'));
-function App() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <MyComponent />
-    </Suspense>
-  );
-}
-
+// Lazy load MyComponent
+const MyComponent = lazy(() => import('./components/MyComponent'));
 
 class App extends Component {
   onBeforeUnloadText = "You have unsaved changes.\n\nAre you sure you want to close this page?";
@@ -46,7 +40,6 @@ class App extends Component {
 
   componentDidMount() {
     window.addEventListener('beforeunload', this.onBeforeUnload);
-
     this.bindGlobalNavigationHelper();
     this.followDetailsInMenu();
 
@@ -77,7 +70,7 @@ class App extends Component {
             OnlineTracker.track(this.props.location.pathname);
           } else {
             // User is not signed in
-            this.handleRedirect(); // Handle potential redirects here
+            this.handleRedirect();
             this.signInUser();
           }
         });
@@ -91,12 +84,10 @@ class App extends Component {
   }
 
   handleRedirect = () => {
-    // Handle potential redirects only if the user is not logged in
     if (!this.state.loggedIn) {
       firebase.auth().getRedirectResult()
         .then((result) => {
           if (result.user) {
-            // User is signed in
             this.setState({ loggedIn: true });
             this.fetchMenu();
             OnlineTracker.track(this.props.location.pathname);
@@ -135,10 +126,9 @@ class App extends Component {
   }
 
   signInUser = () => {
-    // Sign in using popup
     firebase.auth().signInWithPopup(this.getAuthProvider())
       .then(() => {
-        // Sign-in successful, no further action needed
+        // Sign-in successful
       })
       .catch(err => {
         this.setState({
@@ -267,10 +257,13 @@ class App extends Component {
         </div>
 
         <div className="app__content">
-          <Switch>
-            <Route path="/online" component={PeopleOnline} />
-            <Route render={this.renderComponentForRoute()} />
-          </Switch>
+          <Suspense fallback={<div>Loading...</div>}>
+            <Switch>
+              <Route path="/online" component={PeopleOnline} />
+              <Route render={this.renderComponentForRoute()} />
+              <MyComponent /> {/* Use your lazy-loaded component here if necessary */}
+            </Switch>
+          </Suspense>
         </div>
       </div>
     );
