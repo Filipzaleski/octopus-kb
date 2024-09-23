@@ -5,7 +5,9 @@ import React, { Component } from 'react';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom';
 
-import * as firebase from 'firebase';
+import firebase from 'firebase/app';
+import 'firebase/auth'; // if using authentication
+import 'firebase/database'; // if using database
 import { Config } from './config';
 import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
@@ -32,6 +34,11 @@ class App extends Component {
     authError: false,
     authErrorMessage: ''
   };
+
+  constructor(props) {
+    super(props);
+    this.followDetailsInMenu = this.followDetailsInMenu.bind(this); // Bind the method
+  }
 
   componentDidMount() {
     window.addEventListener('beforeunload', this.onBeforeUnload);
