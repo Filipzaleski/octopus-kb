@@ -1,3 +1,4 @@
+import $ from 'jquery';
 
 
 const currentDate = new Date(); 
