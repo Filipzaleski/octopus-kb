@@ -1,8 +1,7 @@
-import './css/reset.css';
 import './css/buttons.css';
 import './css/tooltips.css';
 import './App.css';
-import React, { Component, Suspense, lazy } from 'react';
+import React, { Component } from 'react';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom';
 
@@ -14,7 +13,6 @@ import { PeopleOnline } from './components/people-online';
 import { MenuSearch } from './components/menu-search';
 import { OnlineTracker } from './utils';
 
-
 import {
   menuTemplate,
   companyStructureTemplate,
@@ -22,9 +20,6 @@ import {
   diagramsHelpTemplate,
   newPageTemplate
 } from './templates';
-
-// Lazy load MyComponent
-const MyComponent = lazy(() => import('./components/MyComponent'));
 
 class App extends Component {
   onBeforeUnloadText = "You have unsaved changes.\n\nAre you sure you want to close this page?";
@@ -52,24 +47,18 @@ class App extends Component {
       messagingSenderId: Config.messageingSenderId
     };
 
-    // Allow markdown plugins to refer to "firebase" global object
     window['firebase'] = firebase;
 
-    // Initialize Firebase App
     firebase.initializeApp(config);
 
-    // Set persistence to LOCAL to ensure auth state is saved across tabs/sessions
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
       .then(() => {
-        // Check if user is already authenticated
         firebase.auth().onAuthStateChanged((user) => {
           if (user) {
-            // User is signed in
             this.setState({ loggedIn: true });
             this.fetchMenu();
             OnlineTracker.track(this.props.location.pathname);
           } else {
-            // User is not signed in
             this.handleRedirect();
             this.signInUser();
           }
@@ -257,13 +246,10 @@ class App extends Component {
         </div>
 
         <div className="app__content">
-          <Suspense fallback={<div>Loading...</div>}>
-            <Switch>
-              <Route path="/online" component={PeopleOnline} />
-              <Route render={this.renderComponentForRoute()} />
-              <MyComponent /> {/* Use your lazy-loaded component here if necessary */}
-            </Switch>
-          </Suspense>
+          <Switch>
+            <Route path="/online" component={PeopleOnline} />
+            <Route render={this.renderComponentForRoute()} />
+          </Switch>
         </div>
       </div>
     );
