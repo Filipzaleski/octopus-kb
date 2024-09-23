@@ -64,11 +64,15 @@ class App extends Component {
         // Check if user is already authenticated
         firebase.auth().onAuthStateChanged((user) => {
           if (user) {
+            // User is signed in
             this.setState({ loggedIn: true });
             this.fetchMenu();
             OnlineTracker.track(this.props.location.pathname);
           } else {
-            this.signInUser();
+            // User is not signed in
+            if (!this.stopRedirection) {
+              this.signInUser();
+            }
           }
         });
       })
@@ -78,6 +82,30 @@ class App extends Component {
           authErrorMessage: err.message
         });
       });
+      this.handleRedirect();
+  }
+
+  handleRedirect = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('code')) {
+      // This is a redirect from Firebase
+      this.stopRedirection = true; // Prevents redundant sign-in attempts
+      firebase.auth().getRedirectResult()
+        .then((result) => {
+          if (result.user) {
+            // User is signed in
+            this.setState({ loggedIn: true });
+            this.fetchMenu();
+            OnlineTracker.track(this.props.location.pathname);
+          }
+        })
+        .catch(err => {
+          this.setState({
+            authError: true,
+            authErrorMessage: err.message
+          });
+        });
+    }
   }
 
   componentWillUnmount() {
