@@ -25,7 +25,6 @@ import {
 } from './templates';
 
 class App extends Component {
-  stopRedirection = false;
   onBeforeUnloadText = "You have unsaved changes.\n\nAre you sure you want to close this page?";
 
   state = {
@@ -70,9 +69,8 @@ class App extends Component {
             OnlineTracker.track(this.props.location.pathname);
           } else {
             // User is not signed in
-            if (!this.stopRedirection) {
-              this.signInUser();
-            }
+            this.handleRedirect(); // Handle potential redirects here
+            this.signInUser();
           }
         });
       })
@@ -82,14 +80,11 @@ class App extends Component {
           authErrorMessage: err.message
         });
       });
-      this.handleRedirect();
   }
 
   handleRedirect = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('code')) {
-      // This is a redirect from Firebase
-      this.stopRedirection = true; // Prevents redundant sign-in attempts
+    // Handle potential redirects only if the user is not logged in
+    if (!this.state.loggedIn) {
       firebase.auth().getRedirectResult()
         .then((result) => {
           if (result.user) {
