@@ -64,43 +64,11 @@ class App extends Component {
         // Check if user is already authenticated
         firebase.auth().onAuthStateChanged((user) => {
           if (user) {
-            this.setState({
-              loggedIn: true
-            });
-
-            // Fetch the menu from Firebase Database
-            let menu = firebase.database().ref('pages/menu');
-            menu.on('value', (snapshot) => {
-              const menuContents = snapshot.val();
-              if (menuContents) {
-                this.setState({
-                  menu: menuContents.body
-                });
-              } else {
-                this.createExamplePages();
-              }
-            }, (error) => {
-              this.onAccessDenied();
-            });
-
+            this.setState({ loggedIn: true });
+            this.fetchMenu();
             OnlineTracker.track(this.props.location.pathname);
           } else {
-            if (!this.stopRedirection) {
-              // Sign in using popup with fallback to redirect
-              firebase.auth().signInWithPopup(this.getAuthProvider())
-                .catch(err => {
-                  if (err.code === 'auth/popup-blocked') {
-                    // Fallback to redirect if popup is blocked
-                    firebase.auth().signInWithRedirect(this.getAuthProvider());
-                  } else {
-                    this.stopRedirection = true;
-                    this.setState({
-                      authError: true,
-                      authErrorMessage: err.message
-                    });
-                  }
-                });
-            }
+            this.signInUser();
           }
         });
       })
@@ -123,21 +91,42 @@ class App extends Component {
     }
   }
 
+  fetchMenu = () => {
+    let menu = firebase.database().ref('pages/menu');
+    menu.on('value', (snapshot) => {
+      const menuContents = snapshot.val();
+      if (menuContents) {
+        this.setState({ menu: menuContents.body });
+      } else {
+        this.createExamplePages();
+      }
+    }, this.onAccessDenied);
+  }
+
+  signInUser = () => {
+    // Sign in using popup
+    firebase.auth().signInWithPopup(this.getAuthProvider())
+      .then(() => {
+        // Sign-in successful, no further action needed
+      })
+      .catch(err => {
+        this.setState({
+          authError: true,
+          authErrorMessage: err.message
+        });
+      });
+  }
+
   getAuthProvider() {
-    switch (Config.authProvider) {
-      case 'github':
-        return new firebase.auth.GithubAuthProvider();
-      default:
-        return new firebase.auth.GoogleAuthProvider();
-    }
+    return Config.authProvider === 'github'
+      ? new firebase.auth.GithubAuthProvider()
+      : new firebase.auth.GoogleAuthProvider();
   }
 
   setupPage(ref, template) {
     firebase.database().ref(`pages/${ref}`).once('value').then((snapshot) => {
       if (!snapshot.val()) {
-        firebase.database().ref(`pages/${ref}`).set({
-          body: template
-        });
+        firebase.database().ref(`pages/${ref}`).set({ body: template });
       }
     }).catch(err => {});
   }
@@ -152,102 +141,65 @@ class App extends Component {
   }
 
   bindGlobalNavigationHelper() {
-    var self = this;
     const re = new RegExp('^' + window.location.origin);
-
     window.navigateTo = (event, url) => {
       if (re.test(url)) {
         event.preventDefault();
         url = url.substring(window.location.origin.length);
-        self.props.history.push(url);
+        this.props.history.push(url);
       } else if (/^https?:/.test(url) === false) {
         event.preventDefault();
-        self.props.history.push(url);
+        this.props.history.push(url);
       }
     };
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     this.followDetailsInMenu();
     if (this.props.location.pathname !== prevProps.location.pathname) {
       OnlineTracker.track(this.props.location.pathname);
     }
   }
 
-  editModeChanged = (value) => {
-    this.setState({
-      editMode: value
-    });
-  }
-
-  onUnsavedChanges = (value) => {
-    this.setState({
-      hasUnsavedChanges: value
-    });
-  }
-
-  onAccessDenied = () => {
-    this.setState({
-      accessDenied: true
-    });
-  }
-
-  openParentDetailsNode = (node) => {
-    if (node) {
-      if (node.nodeName.toLowerCase() !== 'details') {
-        this.openParentDetailsNode(node.parentNode);
-      } else {
-        node.setAttribute('open', 'true');
-      }
-    }
-  };
-
-  followDetailsInMenu = () => {
-    const menuDOMNode = ReactDOM.findDOMNode(this.refs.menu);
-    if (menuDOMNode) {
-      const actives = menuDOMNode.getElementsByClassName('active');
-      for (let i = 0; i < actives.length; i++) {
-        this.openParentDetailsNode(actives[i]);
-      }
-    }
-  };
-
   render() {
     if (this.state.authError) {
-      return (
-        <div className="app-error content--markdown">
-          <p>Firebase app is not configured properly.</p>
-          {this.state.authErrorMessage &&
-            <p><strong>Error message:</strong><br />{this.state.authErrorMessage}</p>
-          }
-          {!this.state.authErrorMessage &&
-            <div>
-            <p>Please go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">Firebase Console</a> &gt; Authentication &gt; Sign-in method and make sure:</p>
-            <ul>
-              <li>At least one sign-in method is configured,</li>
-              <li><strong>{window.location.origin}</strong> is added to the list of authorized domains.</li>
-            </ul>
-            </div>
-          }
-          <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
-        </div>
-      );
+      return this.renderAuthError();
     } else if (this.state.accessDenied) {
-      return (
-        <div className="app-error content--markdown">
-          <p>Access denied for <strong>{firebase.auth().currentUser.email}</strong>.</p>
-          <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
-        </div>
-      );
+      return this.renderAccessDenied();
     } else if (!this.state.loggedIn) {
-      return (
-        <div className="spinner-container">
-          <div className="spinner"></div>
-        </div>
-      );
+      return this.renderLoading();
     } else {
       return this.renderApp();
     }
+  }
+
+  renderAuthError() {
+    return (
+      <div className="app-error content--markdown">
+        <p>Firebase app is not configured properly.</p>
+        {this.state.authErrorMessage &&
+          <p><strong>Error message:</strong><br />{this.state.authErrorMessage}</p>
+        }
+        <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
+      </div>
+    );
+  }
+
+  renderAccessDenied() {
+    return (
+      <div className="app-error content--markdown">
+        <p>Access denied for <strong>{firebase.auth().currentUser.email}</strong>.</p>
+        <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
+      </div>
+    );
+  }
+
+  renderLoading() {
+    return (
+      <div className="spinner-container">
+        <div className="spinner"></div>
+      </div>
+    );
   }
 
   renderApp() {
@@ -267,7 +219,7 @@ class App extends Component {
             <NavLink to="/"><img className="octopus" src="/static/octopus.png" alt="" /></NavLink>
           </div>
 
-          {!this.state.menu &&
+          {!this.state.menu && 
             <div className="spinner-container">
               <div className="spinner"></div>
             </div>
@@ -298,22 +250,23 @@ class App extends Component {
       const path = route.location.pathname.substring(1);
       const hash = route.location.hash;
 
-      return <div>
-        <Prompt
-          when={this.state.hasUnsavedChanges}
-          message={location => this.onBeforeUnloadText}
-        />
-
-        <PageContainer
-          onEditModeChange={this.editModeChanged}
-          onUnsavedChanges={this.onUnsavedChanges}
-          onAccessDenied={this.onAccessDenied}
-          path={path}
-          key={path}
-          hash={hash}
-        />
-      </div>;
-    }
+      return (
+        <div>
+          <Prompt
+            when={this.state.hasUnsavedChanges}
+            message={location => this.onBeforeUnloadText}
+          />
+          <PageContainer
+            onEditModeChange={this.editModeChanged}
+            onUnsavedChanges={this.onUnsavedChanges}
+            onAccessDenied={this.onAccessDenied}
+            path={path}
+            key={path}
+            hash={hash}
+          />
+        </div>
+      );
+    };
   }
 }
 
