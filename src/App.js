@@ -2,14 +2,12 @@ import './css/reset.css';
 import './css/buttons.css';
 import './css/tooltips.css';
 import './App.css';
-
+import React, { Suspense, lazy } from 'react';
 import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom';
 
 import * as firebase from 'firebase';
-import { Firebase, OnlineTracker } from './utils';
 import { Config } from './config';
 import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
@@ -23,6 +21,16 @@ import {
   diagramsHelpTemplate,
   newPageTemplate
 } from './templates';
+
+const MyComponent = lazy(() => import('./MyComponent'));
+function App() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MyComponent />
+    </Suspense>
+  );
+}
+
 
 class App extends Component {
   onBeforeUnloadText = "You have unsaved changes.\n\nAre you sure you want to close this page?";

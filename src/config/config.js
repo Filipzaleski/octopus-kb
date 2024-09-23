@@ -35,8 +35,7 @@ const csv = [
   header.join(','), // header row first
   ...items.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','))
 ].join('\r\n')
-  
-const downloadButton = ('#download-button');     
+       
 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8,' })
 const objUrl = URL.createObjectURL(blob)
 const link = document.createElement('a')
