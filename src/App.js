@@ -56,7 +56,7 @@ class App extends Component {
 
     firebase.initializeApp(config);
     try {
-      firebase.auth().getRedirectResult().then((result) => {
+      firebase.auth().signInWithPopup().then((result) => {
         if (result && result.credential && result.credential.accessToken) {
           Firebase.rememberFirebaseAccessToken(result.credential.accessToken);
         }
