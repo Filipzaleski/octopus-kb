@@ -6,7 +6,7 @@ import './App.css';
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import { withRouter } from 'react-router';
-import { Switch, Route, NavLink, Prompt } from 'react-router-dom'
+import { Switch, Route, NavLink, Prompt } from 'react-router-dom';
 
 import * as firebase from 'firebase';
 import { Firebase, OnlineTracker } from './utils';
@@ -50,24 +50,12 @@ class App extends Component {
       messagingSenderId: Config.messageingSenderId
     };
 
-    // allow markdown plugins refer to "firebase" global object
-    // when injecting custom inline HTML
+    // Allow markdown plugins to refer to "firebase" global object
     window['firebase'] = firebase;
 
     firebase.initializeApp(config);
-    try {
-      firebase.auth().signInWithPopup().then((result) => {
-        if (result && result.credential && result.credential.accessToken) {
-          Firebase.rememberFirebaseAccessToken(result.credential.accessToken);
-        }
-      }).catch(err => {
-        this.stopRedirection = true;
-        this.setState({
-          authError: true,
-          authErrorMessage: err.message
-        });
-      });
 
+    try {
       firebase.auth().onAuthStateChanged((user) => {
         if (user) {
           this.setState({
@@ -91,13 +79,19 @@ class App extends Component {
           OnlineTracker.track(this.props.location.pathname);
         } else {
           if (!this.stopRedirection) {
+            // Sign in using popup
             firebase.auth().signInWithPopup(this.getAuthProvider())
               .catch(err => {
-                this.stopRedirection = true;
-                this.setState({
-                  authError: true,
-                  authErrorMessage: err.message
-                });
+                if (err.code === 'auth/popup-blocked') {
+                  // Fallback to redirect if popup is blocked
+                  firebase.auth().signInWithRedirect(this.getAuthProvider());
+                } else {
+                  this.stopRedirection = true;
+                  this.setState({
+                    authError: true,
+                    authErrorMessage: err.message
+                  });
+                }
               });
           }
         }
@@ -125,9 +119,9 @@ class App extends Component {
   getAuthProvider() {
     switch (Config.authProvider) {
       case 'github':
-        return new firebase.auth.GithubAuthProvider()
+        return new firebase.auth.GithubAuthProvider();
       default:
-        return new firebase.auth.GoogleAuthProvider()
+        return new firebase.auth.GoogleAuthProvider();
     }
   }
 
@@ -150,22 +144,15 @@ class App extends Component {
     this.setupPage('diagrams-help', diagramsHelpTemplate);
   }
 
-  // window.navigateTo(event, url)
-  // helps components incompatible with React
-  // navigate through the app
-  // example: [diagram] markdown links
   bindGlobalNavigationHelper() {
     var self = this;
     const re = new RegExp('^' + window.location.origin);
 
     window.navigateTo = (event, url) => {
-      // check if URL is in the same domain
       if (re.test(url)) {
         event.preventDefault();
         url = url.substring(window.location.origin.length);
         self.props.history.push(url);
-
-      // check if URL is a relative path (without protocol)
       } else if (/^https?:/.test(url) === false) {
         event.preventDefault();
         self.props.history.push(url);
@@ -229,7 +216,7 @@ class App extends Component {
             <div>
             <p>Please go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">Firebase Console</a> &gt; Authentication &gt; Sign-in method and make sure:</p>
             <ul>
-            <li>at least one sign-in method is configured,</li>
+            <li>At least one sign-in method is configured,</li>
             <li><strong>{window.location.origin}</strong> is added to the list of authorized domains.</li>
             </ul>
             </div>
