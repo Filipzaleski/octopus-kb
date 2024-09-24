@@ -36,6 +36,18 @@ class App extends Component {
     authErrorMessage: ''
   };
 
+  fetchMenu = () => {
+    let menu = firebase.database().ref('pages/menu');
+    menu.on('value', (snapshot) => {
+      const menuContents = snapshot.val();
+      if (menuContents) {
+        this.setState({ menu: menuContents.body });
+      } else {
+        this.createExamplePages();
+      }
+    }, this.onAccessDenied);
+  }
+
   componentDidMount() {
     window.addEventListener('beforeunload', this.onBeforeUnload);
     this.bindGlobalNavigationHelper();
