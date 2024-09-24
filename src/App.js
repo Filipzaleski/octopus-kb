@@ -37,10 +37,10 @@ class App extends Component {
 
   componentDidMount() {
     window.addEventListener('beforeunload', this.onBeforeUnload);
-
+  
     this.bindGlobalNavigationHelper();
     this.followDetailsInMenu();
-
+  
     const config = {
       apiKey: Config.apiKey,
       authDomain: Config.authDomain,
@@ -49,67 +49,37 @@ class App extends Component {
       storageBucket: Config.storageBucket,
       messagingSenderId: Config.messageingSenderId
     };
-
-    // allow markdown plugins refer to "firebase" global object
-    // when injecting custom inline HTML
+  
     window['firebase'] = firebase;
-
+  
     firebase.initializeApp(config);
-    try {
-      firebase.auth().getRedirectResult().then((result) => {
-        if (result && result.credential && result.credential.accessToken) {
-          Firebase.rememberFirebaseAccessToken(result.credential.accessToken);
-        }
-      }).catch(err => {
-        this.stopRedirection = true;
-        this.setState({
-          authError: true,
-          authErrorMessage: err.message
-        });
-      });
-
-      firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-          this.setState({
-            loggedIn: true
-          });
-
-          let menu = firebase.database().ref('pages/menu');
-          menu.on('value', (snapshot) => {
-            const menuContents = snapshot.val();
-            if (menuContents) {
-              this.setState({
-                menu: menuContents.body
-              });
-            } else {
-              this.createExamplePages();
-            }
-          }, (error) => {
-            this.onAccessDenied();
-          });
-
-          OnlineTracker.track(this.props.location.pathname);
-        } else {
-          if (!this.stopRedirection) {
-            firebase.auth().signInWithRedirect(this.getAuthProvider())
-              .catch(err => {
-                this.stopRedirection = true;
-                this.setState({
-                  authError: true,
-                  authErrorMessage: err.message
-                });
-              });
-          }
-        }
-      });
-    } catch (err) {
-      this.stopRedirection = true;
+  
+    firebase.auth().getRedirectResult().then((result) => {
+      if (result.user) {
+        this.setState({ loggedIn: true });
+        this.fetchMenu();
+        OnlineTracker.track(this.props.location.pathname);
+      }
+    }).catch(err => {
       this.setState({
         authError: true,
         authErrorMessage: err.message
       });
-    }
+    });
+  
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        if (!this.state.loggedIn) {
+          this.setState({ loggedIn: true });
+          this.fetchMenu();
+          OnlineTracker.track(this.props.location.pathname);
+        }
+      } else if (!this.state.loggedIn) {
+        firebase.auth().signInWithRedirect(this.getAuthProvider());
+      }
+    });
   }
+  
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onBeforeUnload);
