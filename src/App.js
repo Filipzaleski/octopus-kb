@@ -13,6 +13,7 @@ import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
 import { PeopleOnline } from './components/people-online';
 import { MenuSearch } from './components/menu-search';
+import { OnlineTracker } from './OnlineTracker';
 
 import {
   menuTemplate,
