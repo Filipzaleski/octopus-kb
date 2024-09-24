@@ -31,12 +31,13 @@ class App extends Component {
     loggedIn: false,
     accessDenied: false,
     hasUnsavedChanges: false,
-    menu: null
+    menu: null,
+    authError: false,
+    authErrorMessage: ''
   };
 
   componentDidMount() {
     window.addEventListener('beforeunload', this.onBeforeUnload);
-  
     this.bindGlobalNavigationHelper();
     this.followDetailsInMenu();
   
@@ -50,7 +51,6 @@ class App extends Component {
     };
   
     window['firebase'] = firebase;
-  
     firebase.initializeApp(config);
   
     firebase.auth().getRedirectResult().then((result) => {
@@ -74,7 +74,10 @@ class App extends Component {
           OnlineTracker.track(this.props.location.pathname);
         }
       } else if (!this.state.loggedIn) {
-        firebase.auth().signInWithRedirect(this.getAuthProvider());
+        // Use signInWithPopup instead of signInWithRedirect
+        firebase.auth().signInWithPopup(this.getAuthProvider()).catch(err => {
+          this.setState({ authError: true, authErrorMessage: err.message });
+        });
       }
     });
   }
