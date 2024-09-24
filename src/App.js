@@ -7,9 +7,7 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom'
-
 import * as firebase from 'firebase';
-import { Firebase, OnlineTracker } from './utils';
 import { Config } from './config';
 import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
