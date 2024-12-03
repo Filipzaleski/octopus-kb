@@ -53,12 +53,12 @@ class App extends Component {
     this.followDetailsInMenu();
   
     const config = {
-      apiKey: Config.apiKey,
-      authDomain: Config.authDomain,
-      databaseURL: Config.databaseURL,
-      projectId: Config.projectId,
-      storageBucket: Config.storageBucket,
-      messagingSenderId: Config.messageingSenderId,
+      apiKey: "AIzaSyD6_jLPqcvV43itoxTl_8Sr4j7Aam8ewyg",
+      authDomain: "webnomads-kb.firebaseapp.com",
+      databaseURL: "https://webnomads-kb-default-rtdb.firebaseio.com",
+      projectId: "webnomads-kb",
+      storageBucket: "webnomads-kb.firebasestorage.app",
+      messagingSenderId: "783363300969",t,
     };
   
     if (!firebase.apps.length) {
