@@ -108,12 +108,15 @@ class App extends Component {
 
   handleSignIn = () => {
     const redirectInProgress = sessionStorage.getItem('authRedirecting');
+    console.log("Redirect in progress:", redirectInProgress);
     
     if (!redirectInProgress) {
       try {
+        console.log("Starting redirect...");
         sessionStorage.setItem('authRedirecting', 'true');
         const provider = this.getAuthProvider();
-        firebase.auth().signInWithRedirect(provider);
+        firebase.auth().signInWithRedirect(provider)
+          .catch(error => console.error("Redirect error:", error));
       } catch (error) {
         console.error('Sign in error:', error);
         this.setState({
@@ -122,11 +125,6 @@ class App extends Component {
           isLoading: false
         });
       }
-    } else {
-      this.setState({
-        loggedIn: false,
-        isLoading: false
-      });
     }
   }
 
@@ -138,12 +136,12 @@ class App extends Component {
   }
 
   getAuthProvider() {
-    switch (Config.authProvider) {
-      case 'github':
-        return new firebase.auth.GithubAuthProvider()
-      default:
-        return new firebase.auth.GoogleAuthProvider()
-    }
+    console.log("Auth provider:", Config.authProvider);
+    const provider = Config.authProvider === 'github' 
+      ? new firebase.auth.GithubAuthProvider()
+      : new firebase.auth.GoogleAuthProvider();
+    console.log("Created provider:", provider);
+    return provider;
   }
 
   setupPage(ref, template) {
