@@ -24,17 +24,16 @@ import {
 } from './templates';
 
 class App extends Component {
-  stopRedirection = false;
-  onBeforeUnloadText = "You have unsaved changes.\n\nAre you sure you want to close this page?";
-
   state = {
     loggedIn: false,
     accessDenied: false,
     hasUnsavedChanges: false,
     menu: null,
     authError: false,
-    authErrorMessage: ''
+    authErrorMessage: '',
+    isLoading: true
   };
+
 
   fetchMenu = () => {
     let menu = firebase.database().ref('pages/menu');
@@ -62,6 +61,26 @@ class App extends Component {
       messagingSenderId: Config.messageingSenderId,
     };
   
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(config);
+    }
+
+        this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        this.setState({ 
+          loggedIn: true, 
+          isLoading: false 
+        }, () => {
+          this.fetchMenu();
+          OnlineTracker.track(this.props.location.pathname);
+        });
+      } else {
+        this.handleSignIn();
+      }
+    });
+
+
     window['firebase'] = firebase;
     firebase.initializeApp(config);
   
@@ -117,6 +136,33 @@ class App extends Component {
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onBeforeUnload);
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  }
+
+  handleSignIn = () => {
+    const redirectInProgress = sessionStorage.getItem('authRedirecting');
+    
+    if (!redirectInProgress) {
+      try {
+        sessionStorage.setItem('authRedirecting', 'true');
+        const provider = this.getAuthProvider();
+        firebase.auth().signInWithRedirect(provider);
+      } catch (error) {
+        console.error('Sign in error:', error);
+        this.setState({
+          authError: true,
+          authErrorMessage: error.message,
+          isLoading: false
+        });
+      }
+    } else {
+      this.setState({
+        loggedIn: false,
+        isLoading: false
+      });
+    }
   }
 
   onBeforeUnload = (e) => {
