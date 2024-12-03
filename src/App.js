@@ -68,22 +68,20 @@ class App extends Component {
       firebase.initializeApp(config);
       window['firebase'] = firebase;
     }
-  
-    // Handle redirect results first
-    firebase.auth().getRedirectResult().then((result) => {
-      sessionStorage.removeItem('authRedirecting');
+    // Clear any stale auth state  
+    sessionStorage.removeItem('authRedirecting');
+
+
+  // Handle redirect results first
+  firebase.auth().getRedirectResult()
+    .then((result) => {
       if (result.user) {
-        console.log("User signed in from redirect:", result.user);
+        console.log("Redirect successful:", result.user.email);
       }
-    }).catch((err) => {
-      sessionStorage.removeItem('authRedirecting');
-      console.error("Error during redirect:", err);
-      this.setState({
-        authError: true,
-        authErrorMessage: err.message,
-        isLoading: false,
-      });
-    });
+    })
+    .catch(console.error);
+
+    
   
     // Then set up auth state listener
     this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
@@ -111,14 +109,16 @@ class App extends Component {
 
   handleSignIn = () => {
     const redirectInProgress = sessionStorage.getItem('authRedirecting');
-    console.log("Redirect in progress:", redirectInProgress);
+    console.log("Redirect in progress:", redirectInProgress, "Current URL:", window.location.href);
     
     if (!redirectInProgress) {
       try {
         console.log("Starting redirect...");
         sessionStorage.setItem('authRedirecting', 'true');
         const provider = this.getAuthProvider();
+        console.log("Starting auth redirect with provider", provider.providerId);
         firebase.auth().signInWithRedirect(provider)
+          .then(() => console.log("Redirect initiated"))
           .catch(error => console.error("Redirect error:", error));
       } catch (error) {
         console.error('Sign in error:', error);
@@ -139,9 +139,12 @@ class App extends Component {
   }
 
   getAuthProvider() {
-    console.log("Creating Google auth provider");
     const provider = new firebase.auth.GoogleAuthProvider();
-    console.log("Created provider:", provider);
+    provider.addScope('email');
+    provider.addScope('profile');
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
     return provider;
   }
 
