@@ -70,15 +70,19 @@ class App extends Component {
   
     // Handle redirect results
     firebase.auth().getRedirectResult().then((result) => {
+      sessionStorage.removeItem('authRedirecting'); // Clear the redirect flag
+    
       if (result.user) {
         console.log("User signed in from redirect:", result.user);
         this.setState({ loggedIn: true, isLoading: false });
         this.fetchMenu();
         OnlineTracker.track(this.props.location.pathname);
       } else {
-        this.setState({ isLoading: false }); // Ensure loading ends if no user is returned
+        console.log("No user signed in after redirect.");
+        this.setState({ isLoading: false });
       }
     }).catch((err) => {
+      sessionStorage.removeItem('authRedirecting'); // Clear the redirect flag on error
       console.error("Error during redirect:", err);
       this.setState({
         authError: true,
@@ -103,9 +107,6 @@ class App extends Component {
           sessionStorage.setItem('authRedirecting', 'true');
           this.setState({ isLoading: true }); // Set loading during redirect
           firebase.auth().signInWithRedirect(this.getAuthProvider());
-        } else {
-          sessionStorage.removeItem('authRedirecting');
-          this.setState({ isLoading: false }); // Clear loading state
         }
       }
     });
