@@ -51,6 +51,12 @@ class App extends Component {
   }
 
   componentDidMount() {
+
+    console.log("Starting Firebase initialization", {
+      currentDomain: window.location.hostname,
+      origin: window.location.origin
+    });
+
     window.addEventListener('beforeunload', this.onBeforeUnload);
     this.bindGlobalNavigationHelper();
     this.followDetailsInMenu();
@@ -72,8 +78,8 @@ class App extends Component {
     sessionStorage.removeItem('authRedirecting');
 
 
-  // Handle redirect results first
-  firebase.auth().getRedirectResult()
+    // Handle redirect results first
+    firebase.auth().getRedirectResult()
     .then((result) => {
       if (result.user) {
         console.log("Redirect successful:", result.user.email);
@@ -97,6 +103,12 @@ class App extends Component {
         this.handleSignIn();
       }
     });
+
+
+    console.log("Firebase app initialized:", {
+      appConfig: firebase.app().options,
+      isInitialized: firebase.app().automaticDataCollectionEnabled
+    });
   }
    
 
@@ -109,24 +121,16 @@ class App extends Component {
 
   handleSignIn = () => {
     const redirectInProgress = sessionStorage.getItem('authRedirecting');
-    console.log("Redirect in progress:", redirectInProgress, "Current URL:", window.location.href);
     
     if (!redirectInProgress) {
       try {
-        console.log("Starting redirect...");
-        sessionStorage.setItem('authRedirecting', 'true');
         const provider = this.getAuthProvider();
-        console.log("Starting auth redirect with provider", provider.providerId);
-        firebase.auth().signInWithRedirect(provider)
-          .then(() => console.log("Redirect initiated"))
-          .catch(error => console.error("Redirect error:", error));
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
+          .then(() => firebase.auth().signInWithRedirect(provider))
+          .catch(error => console.error("Auth error:", error));
       } catch (error) {
         console.error('Sign in error:', error);
-        this.setState({
-          authError: true,
-          authErrorMessage: error.message,
-          isLoading: false
-        });
+        this.setState({ authError: true, authErrorMessage: error.message });
       }
     }
   }
