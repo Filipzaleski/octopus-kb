@@ -8,7 +8,7 @@ import ReactDOM from 'react-dom';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom'
 import * as firebase from 'firebase';
-import { Config } from './config';
+//import { Config } from './config';
 import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
 import { PeopleOnline } from './components/people-online';
