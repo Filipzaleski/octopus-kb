@@ -7,13 +7,16 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import { withRouter } from 'react-router';
 import { Switch, Route, NavLink, Prompt } from 'react-router-dom'
-import * as firebase from 'firebase';
+//import * as firebase from 'firebase';
 //import { Config } from './config';
 import { PageContainer } from './containers/page';
 import { Markdown } from './components/markdown';
 import { PeopleOnline } from './components/people-online';
 import { MenuSearch } from './components/menu-search';
 import OnlineTracker from './utils/OnlineTracker';
+import firebase from 'firebase/app';
+import 'firebase/auth';
+import 'firebase/database';
 
 import {
   menuTemplate,
