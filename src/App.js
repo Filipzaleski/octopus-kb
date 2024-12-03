@@ -61,12 +61,29 @@ class App extends Component {
       messagingSenderId: Config.messageingSenderId,
     };
   
-
     if (!firebase.apps.length) {
       firebase.initializeApp(config);
+      window['firebase'] = firebase;
     }
-
-        this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+  
+    // Handle redirect results first
+    firebase.auth().getRedirectResult().then((result) => {
+      sessionStorage.removeItem('authRedirecting');
+      if (result.user) {
+        console.log("User signed in from redirect:", result.user);
+      }
+    }).catch((err) => {
+      sessionStorage.removeItem('authRedirecting');
+      console.error("Error during redirect:", err);
+      this.setState({
+        authError: true,
+        authErrorMessage: err.message,
+        isLoading: false,
+      });
+    });
+  
+    // Then set up auth state listener
+    this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         this.setState({ 
           loggedIn: true, 
@@ -78,32 +95,6 @@ class App extends Component {
       } else {
         this.handleSignIn();
       }
-    });
-
-
-    window['firebase'] = firebase;
-  
-    // Handle redirect results
-    firebase.auth().getRedirectResult().then((result) => {
-      sessionStorage.removeItem('authRedirecting'); // Clear the redirect flag
-    
-      if (result.user) {
-        console.log("User signed in from redirect:", result.user);
-        this.setState({ loggedIn: true, isLoading: false });
-        this.fetchMenu();
-        OnlineTracker.track(this.props.location.pathname);
-      } else {
-        console.log("No user signed in after redirect.");
-        this.setState({ isLoading: false });
-      }
-    }).catch((err) => {
-      sessionStorage.removeItem('authRedirecting'); // Clear the redirect flag on error
-      console.error("Error during redirect:", err);
-      this.setState({
-        authError: true,
-        authErrorMessage: err.message,
-        isLoading: false,
-      });
     });
   }
    
