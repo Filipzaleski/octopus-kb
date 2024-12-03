@@ -63,47 +63,54 @@ class App extends Component {
     };
   
     window['firebase'] = firebase;
-    firebase.initializeApp(config);  
+    firebase.initializeApp(config);
   
-  // Handle redirect results
-  firebase.auth().getRedirectResult().then((result) => {
-    if (result.user) {
-      console.log("User signed in from redirect:", result.user);
-      this.setState({ loggedIn: true });
-      this.fetchMenu();
-      OnlineTracker.track(this.props.location.pathname);
-    }
-  }).catch((err) => {
-    console.error("Error during redirect:", err);
-    this.setState({
-      authError: true,
-      authErrorMessage: err.message,
-    });
-  });
+    // Set initial loading state
+    this.setState({ isLoading: true });
   
-  // Monitor auth state changes
-  firebase.auth().onAuthStateChanged((user) => {
-    if (user) {
-      console.log("Auth state changed: User is signed in:", user);
-      if (!this.state.loggedIn) {
-        this.setState({ loggedIn: true });
+    // Handle redirect results
+    firebase.auth().getRedirectResult().then((result) => {
+      if (result.user) {
+        console.log("User signed in from redirect:", result.user);
+        this.setState({ loggedIn: true, isLoading: false });
         this.fetchMenu();
         OnlineTracker.track(this.props.location.pathname);
-      }
-    } else if (!this.state.loggedIn) {
-      console.log("User not signed in. Triggering redirect...");
-      // Check if a redirect operation is already in progress
-      const redirecting = sessionStorage.getItem('authRedirecting');
-      if (!redirecting) {
-        sessionStorage.setItem('authRedirecting', 'true');
-        firebase.auth().signInWithRedirect(this.getAuthProvider());
       } else {
-        console.log("Redirect already in progress. Skipping...");
-        sessionStorage.removeItem('authRedirecting');
+        this.setState({ isLoading: false }); // Ensure loading ends if no user is returned
       }
-    }
-  });
-}  
+    }).catch((err) => {
+      console.error("Error during redirect:", err);
+      this.setState({
+        authError: true,
+        authErrorMessage: err.message,
+        isLoading: false,
+      });
+    });
+  
+    // Monitor auth state changes
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        console.log("Auth state changed: User is signed in:", user);
+        if (!this.state.loggedIn) {
+          this.setState({ loggedIn: true, isLoading: false });
+          this.fetchMenu();
+          OnlineTracker.track(this.props.location.pathname);
+        }
+      } else {
+        console.log("User not signed in.");
+        if (!this.state.loggedIn && !sessionStorage.getItem('authRedirecting')) {
+          console.log("Triggering redirect...");
+          sessionStorage.setItem('authRedirecting', 'true');
+          this.setState({ isLoading: true }); // Set loading during redirect
+          firebase.auth().signInWithRedirect(this.getAuthProvider());
+        } else {
+          sessionStorage.removeItem('authRedirecting');
+          this.setState({ isLoading: false }); // Clear loading state
+        }
+      }
+    });
+  }
+   
 
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onBeforeUnload);
