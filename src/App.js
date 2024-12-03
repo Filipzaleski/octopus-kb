@@ -136,10 +136,8 @@ class App extends Component {
   }
 
   getAuthProvider() {
-    console.log("Auth provider:", Config.authProvider);
-    const provider = Config.authProvider === 'github' 
-      ? new firebase.auth.GithubAuthProvider()
-      : new firebase.auth.GoogleAuthProvider();
+    console.log("Creating Google auth provider");
+    const provider = new firebase.auth.GoogleAuthProvider();
     console.log("Created provider:", provider);
     return provider;
   }
