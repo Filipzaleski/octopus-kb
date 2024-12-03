@@ -95,18 +95,20 @@ class App extends Component {
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         console.log("Auth state changed: User is signed in:", user);
-        if (!this.state.loggedIn) {
-          this.setState({ loggedIn: true, isLoading: false });
-          this.fetchMenu();
-          OnlineTracker.track(this.props.location.pathname);
-        }
+        this.setState({ loggedIn: true, isLoading: false });
+        this.fetchMenu();
+        OnlineTracker.track(this.props.location.pathname);
       } else {
         console.log("User not signed in.");
-        if (!this.state.loggedIn && !sessionStorage.getItem('authRedirecting')) {
+        // Only redirect if not already in the process and not logged in
+        if (!sessionStorage.getItem('authRedirecting')) {
           console.log("Triggering redirect...");
           sessionStorage.setItem('authRedirecting', 'true');
-          this.setState({ isLoading: true }); // Set loading during redirect
+          this.setState({ isLoading: true });
           firebase.auth().signInWithRedirect(this.getAuthProvider());
+        } else {
+          // If we're already redirecting, just update the loading state
+          this.setState({ loggedIn: false, isLoading: false });
         }
       }
     });
