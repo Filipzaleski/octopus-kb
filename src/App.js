@@ -58,7 +58,7 @@ class App extends Component {
       databaseURL: "https://webnomads-kb-default-rtdb.firebaseio.com",
       projectId: "webnomads-kb",
       storageBucket: "webnomads-kb.firebasestorage.app",
-      messagingSenderId: "783363300969",t,
+      messagingSenderId: "783363300969",
     };
   
     if (!firebase.apps.length) {
