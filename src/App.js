@@ -59,40 +59,42 @@ class App extends Component {
       databaseURL: Config.databaseURL,
       projectId: Config.projectId,
       storageBucket: Config.storageBucket,
-      messagingSenderId: Config.messageingSenderId
+      messagingSenderId: Config.messageingSenderId,
     };
   
     window['firebase'] = firebase;
     firebase.initializeApp(config);
   
+    // Handle redirect results
     firebase.auth().getRedirectResult().then((result) => {
       if (result.user) {
         this.setState({ loggedIn: true });
         this.fetchMenu();
         OnlineTracker.track(this.props.location.pathname);
       }
-    }).catch(err => {
+    }).catch((err) => {
       this.setState({
         authError: true,
-        authErrorMessage: err.message
+        authErrorMessage: err.message,
       });
     });
   
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        if (!this.state.loggedIn) {
-          this.setState({ loggedIn: true });
-          this.fetchMenu();
-          OnlineTracker.track(this.props.location.pathname);
-        }
-      } else if (!this.state.loggedIn) {
-        // Use signInWithPopup instead of signInWithRedirect
-        firebase.auth().signInWithPopup(this.getAuthProvider()).catch(err => {
-          this.setState({ authError: true, authErrorMessage: err.message });
-        });
+  // Monitor auth state changes
+  firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+      if (!this.state.loggedIn) {
+        this.setState({ loggedIn: true });
+        this.fetchMenu();
+        OnlineTracker.track(this.props.location.pathname);
       }
-    });
-  }
+    } else if (!this.state.loggedIn) {
+      // Use signInWithRedirect for better compatibility
+      firebase.auth().signInWithRedirect(this.getAuthProvider()).catch((err) => {
+        this.setState({ authError: true, authErrorMessage: err.message });
+      });
+    }
+  });
+}
   
 
   componentWillUnmount() {
