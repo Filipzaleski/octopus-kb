@@ -72,6 +72,7 @@ class App extends Component {
   
     if (!firebase.apps.length) {
       firebase.initializeApp(config);
+      firebase.app().automaticDataCollectionEnabled = true;
       window['firebase'] = firebase;
     }
     // Clear any stale auth state  
@@ -121,16 +122,29 @@ class App extends Component {
 
   handleSignIn = () => {
     const redirectInProgress = sessionStorage.getItem('authRedirecting');
+    console.log("Redirect in progress:", redirectInProgress);
     
     if (!redirectInProgress) {
       try {
+        console.log("Starting redirect...");
+        sessionStorage.setItem('authRedirecting', 'true');
         const provider = this.getAuthProvider();
-        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
-          .then(() => firebase.auth().signInWithRedirect(provider))
-          .catch(error => console.error("Auth error:", error));
+        firebase.auth().signInWithRedirect(provider)
+          .then(() => console.log("Redirect success"))
+          .catch(error => {
+            console.error("Full redirect error:", {
+              code: error.code,
+              message: error.message,
+              fullError: error
+            });
+          });
       } catch (error) {
         console.error('Sign in error:', error);
-        this.setState({ authError: true, authErrorMessage: error.message });
+        this.setState({
+          authError: true,
+          authErrorMessage: error.message,
+          isLoading: false
+        });
       }
     }
   }
