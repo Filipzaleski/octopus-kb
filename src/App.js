@@ -244,19 +244,27 @@ class App extends Component {
       return (
         <div className="app-error content--markdown">
           <p>Firebase app is not configured properly.</p>
-          {this.state.authErrorMessage &&
-            <p><strong>Error message:</strong><br />{this.state.authErrorMessage}</p>
-          }
-          {!this.state.authErrorMessage &&
+          {this.state.authErrorMessage && (
             <div>
-            <p>Please go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">Firebase Console</a> &gt; Authentication &gt; Sign-in method and make sure:</p>
-            <ul>
-            <li>at least one sign-in method is configured,</li>
-            <li><strong>{window.location.origin}</strong> is added to the list of authorized domains.</li>
-            </ul>
+              <p><strong>Error message:</strong><br />{this.state.authErrorMessage}</p>
+              <p>
+                To enable popups for this site:
+                <ol>
+                  <li>Look for a popup blocked notification in your browser's address bar</li>
+                  <li>Click it and select "Always allow popups from this site"</li>
+                  <li>Then try signing in again</li>
+                </ol>
+              </p>
             </div>
-          }
-        <p><a href="" onClick={() => { firebase.auth().signOut(); return false; }}>Sign out</a></p>
+          )}
+          <p>
+            <a href="" onClick={(e) => { 
+              e.preventDefault(); 
+              this.setState({ authError: false }, () => this.handleSignIn()); 
+            }}>
+              Try Again
+            </a>
+          </p>
         </div>
       );
     } else if (this.state.accessDenied) {
