@@ -57,7 +57,7 @@ class App extends Component {
   
     const config = {
       apiKey: "AIzaSyD6_jLPqcvV43itoxTl_8Sr4j7Aam8ewyg",
-      authDomain: "knowledge.webnomads.studio",  
+      authDomain: "webnomads-kb.firebaseapp.com",  // Changed back to default Firebase domain
       databaseURL: "https://webnomads-kb-default-rtdb.firebaseio.com",
       projectId: "webnomads-kb",
       storageBucket: "webnomads-kb.firebasestorage.app",
@@ -66,11 +66,10 @@ class App extends Component {
   
     if (!firebase.apps.length) {
       firebase.initializeApp(config);
-      firebase.app().automaticDataCollectionEnabled = true;
       window['firebase'] = firebase;
     }
   
-    // Set up auth state listener
+    // Set up auth state listener with loading state control
     this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         this.setState({ 
@@ -80,7 +79,8 @@ class App extends Component {
           this.fetchMenu();
           OnlineTracker.track(this.props.location.pathname);
         });
-      } else {
+      } else if (!this.state.isLoading) {
+        // Only trigger sign in if we're not already trying to sign in
         this.handleSignIn();
       }
     });
@@ -95,25 +95,17 @@ class App extends Component {
   }
 
   handleSignIn = async () => {
+    // Prevent multiple sign-in attempts
+    if (this.state.isLoading) {
+      return;
+    }
+
     try {
-      // First check if popups are blocked
-      const popup = window.open('about:blank', '_blank', 'width=600,height=600');
-      
-      if (!popup || popup.closed || popup.closed === undefined) {
-        // Popup was blocked
-        this.setState({
-          authError: true,
-          authErrorMessage: 
-            "Popups are blocked by your browser. Please enable popups for this site to sign in, " + 
-            "or look for a popup notification at the top of your browser window."
-        });
-        return;
-      }
-      popup.close();
-  
+      this.setState({ isLoading: true, authError: false });
       const provider = this.getAuthProvider();
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       const result = await firebase.auth().signInWithPopup(provider);
-      
+  
       if (result.user) {
         console.log("Sign in successful:", result.user.email);
         this.setState({ 
