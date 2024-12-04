@@ -57,20 +57,22 @@ class App extends Component {
   
     const config = {
       apiKey: "AIzaSyD6_jLPqcvV43itoxTl_8Sr4j7Aam8ewyg",
-      authDomain: "webnomads-kb.firebaseapp.com",  // Changed back to default Firebase domain
+      authDomain: "webnomads-kb.firebaseapp.com", // Use default Firebase domain for now
       databaseURL: "https://webnomads-kb-default-rtdb.firebaseio.com",
       projectId: "webnomads-kb",
       storageBucket: "webnomads-kb.firebasestorage.app",
       messagingSenderId: "783363300969",
     };
   
+    console.log('Initializing Firebase with config:', config);
+  
     if (!firebase.apps.length) {
       firebase.initializeApp(config);
-      window['firebase'] = firebase;
     }
   
-    // Set up auth state listener with loading state control
+    // Remove redirect handling for now to simplify debugging
     this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+      console.log('Auth state changed:', user ? 'User signed in' : 'No user');
       if (user) {
         this.setState({ 
           loggedIn: true, 
@@ -79,8 +81,7 @@ class App extends Component {
           this.fetchMenu();
           OnlineTracker.track(this.props.location.pathname);
         });
-      } else if (!this.state.isLoading) {
-        // Only trigger sign in if we're not already trying to sign in
+      } else {
         this.handleSignIn();
       }
     });
@@ -95,34 +96,27 @@ class App extends Component {
   }
 
   handleSignIn = async () => {
-    // Prevent multiple sign-in attempts
-    if (this.state.isLoading) {
-      return;
-    }
-
     try {
-      this.setState({ isLoading: true, authError: false });
-      const provider = this.getAuthProvider();
-      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      console.log('Starting sign in process');
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('email');
+      
+      console.log('Attempting popup sign in');
       const result = await firebase.auth().signInWithPopup(provider);
-  
-      if (result.user) {
-        console.log("Sign in successful:", result.user.email);
-        this.setState({ 
-          loggedIn: true, 
-          isLoading: false,
-          authError: false,
-          authErrorMessage: ''
-        }, () => {
-          this.fetchMenu();
-          OnlineTracker.track(this.props.location.pathname);
-        });
-      }
+      console.log('Sign in result:', result);
+      
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('Detailed sign in error:', {
+        code: error.code,
+        message: error.message,
+        email: error.email,
+        credential: error.credential,
+        fullError: error
+      });
+      
       this.setState({
         authError: true,
-        authErrorMessage: error.message,
+        authErrorMessage: `${error.code}: ${error.message}`,
         isLoading: false
       });
     }
