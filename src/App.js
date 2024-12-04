@@ -51,19 +51,13 @@ class App extends Component {
   }
 
   componentDidMount() {
-
-    console.log("Starting Firebase initialization", {
-      currentDomain: window.location.hostname,
-      origin: window.location.origin
-    });
-
     window.addEventListener('beforeunload', this.onBeforeUnload);
     this.bindGlobalNavigationHelper();
     this.followDetailsInMenu();
   
     const config = {
       apiKey: "AIzaSyD6_jLPqcvV43itoxTl_8Sr4j7Aam8ewyg",
-      authDomain: "webnomads-kb.firebaseapp.com",
+      authDomain: "knowledge.webnomads.studio",  
       databaseURL: "https://webnomads-kb-default-rtdb.firebaseio.com",
       projectId: "webnomads-kb",
       storageBucket: "webnomads-kb.firebasestorage.app",
@@ -75,22 +69,8 @@ class App extends Component {
       firebase.app().automaticDataCollectionEnabled = true;
       window['firebase'] = firebase;
     }
-    // Clear any stale auth state  
-    sessionStorage.removeItem('authRedirecting');
-
-
-    // Handle redirect results first
-    firebase.auth().getRedirectResult()
-    .then((result) => {
-      if (result.user) {
-        console.log("Redirect successful:", result.user.email);
-      }
-    })
-    .catch(console.error);
-
-    
   
-    // Then set up auth state listener
+    // Set up auth state listener
     this.unsubscribe = firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         this.setState({ 
@@ -104,12 +84,6 @@ class App extends Component {
         this.handleSignIn();
       }
     });
-
-
-    console.log("Firebase app initialized:", {
-      appConfig: firebase.app().options,
-      isInitialized: firebase.app().automaticDataCollectionEnabled
-    });
   }
    
 
@@ -121,31 +95,38 @@ class App extends Component {
   }
 
   handleSignIn = () => {
-    const redirectInProgress = sessionStorage.getItem('authRedirecting');
-    console.log("Redirect in progress:", redirectInProgress);
-    
-    if (!redirectInProgress) {
-      try {
-        console.log("Starting redirect...");
-        sessionStorage.setItem('authRedirecting', 'true');
-        const provider = this.getAuthProvider();
-        firebase.auth().signInWithRedirect(provider)
-          .then(() => console.log("Redirect success"))
-          .catch(error => {
-            console.error("Full redirect error:", {
-              code: error.code,
-              message: error.message,
-              fullError: error
-            });
+    try {
+      const provider = this.getAuthProvider();
+      firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+          console.log("Popup sign in successful:", result.user.email);
+          this.setState({ 
+            loggedIn: true, 
+            isLoading: false 
+          }, () => {
+            this.fetchMenu();
+            OnlineTracker.track(this.props.location.pathname);
           });
-      } catch (error) {
-        console.error('Sign in error:', error);
-        this.setState({
-          authError: true,
-          authErrorMessage: error.message,
-          isLoading: false
+        })
+        .catch(error => {
+          console.error("Popup sign in error:", {
+            code: error.code,
+            message: error.message,
+            fullError: error
+          });
+          this.setState({
+            authError: true,
+            authErrorMessage: error.message,
+            isLoading: false
+          });
         });
-      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      this.setState({
+        authError: true,
+        authErrorMessage: error.message,
+        isLoading: false
+      });
     }
   }
 
