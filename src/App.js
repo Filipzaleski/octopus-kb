@@ -94,32 +94,38 @@ class App extends Component {
     }
   }
 
-  handleSignIn = () => {
+  handleSignIn = async () => {
     try {
-      const provider = this.getAuthProvider();
-      firebase.auth().signInWithPopup(provider)
-        .then((result) => {
-          console.log("Popup sign in successful:", result.user.email);
-          this.setState({ 
-            loggedIn: true, 
-            isLoading: false 
-          }, () => {
-            this.fetchMenu();
-            OnlineTracker.track(this.props.location.pathname);
-          });
-        })
-        .catch(error => {
-          console.error("Popup sign in error:", {
-            code: error.code,
-            message: error.message,
-            fullError: error
-          });
-          this.setState({
-            authError: true,
-            authErrorMessage: error.message,
-            isLoading: false
-          });
+      // First check if popups are blocked
+      const popup = window.open('about:blank', '_blank', 'width=600,height=600');
+      
+      if (!popup || popup.closed || popup.closed === undefined) {
+        // Popup was blocked
+        this.setState({
+          authError: true,
+          authErrorMessage: 
+            "Popups are blocked by your browser. Please enable popups for this site to sign in, " + 
+            "or look for a popup notification at the top of your browser window."
         });
+        return;
+      }
+      popup.close();
+  
+      const provider = this.getAuthProvider();
+      const result = await firebase.auth().signInWithPopup(provider);
+      
+      if (result.user) {
+        console.log("Sign in successful:", result.user.email);
+        this.setState({ 
+          loggedIn: true, 
+          isLoading: false,
+          authError: false,
+          authErrorMessage: ''
+        }, () => {
+          this.fetchMenu();
+          OnlineTracker.track(this.props.location.pathname);
+        });
+      }
     } catch (error) {
       console.error('Sign in error:', error);
       this.setState({
